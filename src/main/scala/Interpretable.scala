@@ -38,19 +38,27 @@ case object Infinite extends SeedProvider:
   }
   override def sample: Seed = EnumeratedSeed(randomBitSet)
 
-trait Interpretable[IProgram<:Program, ILoc<:Loc, ITransition, IState] {
+trait Interpretable[IProgram<:Program, ILoc<:Loc,IState, IValue] {
+
+  case class StateSelector(seedProvider: SeedProvider, stateThunk: Seed => (ILoc, IState)){
+    def sample:(ILoc,IState) = stateThunk(seedProvider.sample)
+  }
 
   def getInitLoc(program:IProgram):ILoc
-  
-  def transitionsFwd(loc:ILoc):Iterable[ITransition]
-  
-  def transitionsBkwd(loc:ILoc):Iterable[ITransition]
-
+  def getInitState:IState
+  def isTerm(program:IProgram, state:IState, loc:ILoc):Boolean
+  def concStep(program:IProgram, direction: Dir, srcLoc:ILoc, srcState:IState):StateSelector
+  def executeFwd(program:IProgram):IState = {
+    @tailrec
+    def iExecute(program:IProgram, state:IState, loc:ILoc):IState = {
+      val (nextLoc:ILoc,nextState:IState) = concStep(program,ForwardsDir, loc, state).sample
+      iExecute(program, nextState, nextLoc)
+    }
+    iExecute(program, getInitState, getInitLoc(program))
+  }
 }
 
-trait Transfer[IState, IInvariant]{
-  
-}
+
 
 //[1] p: (lambda x:x x) (lambda x: x x)
 //   execution: 1 p -> 1 p -> 1 p -> ...
