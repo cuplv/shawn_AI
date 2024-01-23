@@ -2,45 +2,14 @@ import scala.util.Random
 import scala.collection.BitSet
 import scala.annotation.tailrec
 
-trait Loc{
-  def getSeedProvider(dir:Dir):SeedProvider
-}
 sealed trait Dir
 case object ForwardsDir extends Dir
 case object BackwardsDir extends Dir
-trait Program
 
-trait Seed
 
-case class EnumeratedSeed(v:BitSet) extends Seed
+trait Interpretable[ILoc, ITransition] {
 
-case object OnlySeed extends Seed
-sealed trait SeedProvider{
-  def sample:Seed
-}
-case object Single extends SeedProvider{
-  def sample:Seed = OnlySeed
-}
-//case class Bound(n:Integer) extends SeedProvider:
-//  override def sample: Seed = ???
-case object Infinite extends SeedProvider:
-  val random = Random()
-  def randomBitSet:BitSet = {
-    var cset = BitSet.empty
-    var ind = 0
-    while(random.nextBoolean()) {
-      if(random.nextBoolean()){
-        cset = cset + ind
-      }
-      ind = ind + 1
-    }
-    cset
-  }
-  override def sample: Seed = EnumeratedSeed(randomBitSet)
-
-trait Interpretable[IProgram<:Program, ILoc<:Loc, ITransition, IState] {
-
-  def getInitLoc(program:IProgram):ILoc
+  def getInitLoc:ILoc
   
   def transitionsFwd(loc:ILoc):Iterable[ITransition]
   
@@ -48,8 +17,31 @@ trait Interpretable[IProgram<:Program, ILoc<:Loc, ITransition, IState] {
 
 }
 
-trait Transfer[IState, IInvariant]{
+trait Transfer[IState, ITransition]{
+
+  def getDirection:Dir
+
+  def getInitState():IState
+
+  def transfer(srcState:IState, transition:ITransition):IState
   
+  def join(s1:IState, s2:IState):IState
+  
+
+}
+
+//trait Interpreter[ILoc, IState,
+//  ITransition<:Transition,
+//  IInterpretable<:Interpretable[ILoc, ITransition],
+//  ITransfer<:Transfer[IState,ITransition]]{
+case class Interpreter[IState,ILoc,ITransition](interpretable:Interpretable[ILoc,ITransition],
+                                                transfer:Transfer[IState,ITransition]){
+  
+  type InvarMap = Map[ILoc,IState]
+  def initialInvarMap = Map(interpretable.getInitLoc -> Set(transfer.getInitState()))
+  
+  def step(in:InvarMap):InvarMap
+
 }
 
 //[1] p: (lambda x:x x) (lambda x: x x)
