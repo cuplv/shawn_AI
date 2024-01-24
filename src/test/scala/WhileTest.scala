@@ -1,8 +1,8 @@
 // For more information on writing tests, see
 // https://scalameta.org/munit/docs/getting-started.html
 class WhileTest extends munit.FunSuite {
-  val prg = WhileSeq(WhileAssign("x", Num(1)), WhileAssign("y", Num(2)))
   test("take a couple steps forward into a simple program") {
+    val prg = WhileSeq(WhileAssign("x", Num(1)), WhileAssign("y", Num(2)))
     val interp = Interpreter(prg, IntervalTransfer)
     val initial = interp.initialInvarMap
 
@@ -14,15 +14,12 @@ class WhileTest extends munit.FunSuite {
 
     val stateAtLastFixedPoint = interp.fixedPoint()(prg.postLoc).get
     List(stateAtLastSingleStep,stateAtLastFixedPoint).foreach { stateAtLast =>
-      assert(stateAtLast.asInstanceOf[SomeIntervalState].mem ==
+      assertEquals(stateAtLast.asInstanceOf[SomeIntervalState].mem,
         Map("x" -> Interval(1, 1), "y" -> Interval(2, 2)))
     }
   }
 
-  test("fully execute a program forward"){
-//    val res = WhileInterpretable.executeFwd(prg)
-//    println(res)
-//    assert(res == Map("x" -> 1, "y" -> 2))
+  test("Reach a fixed point over a program with a loop"){
 ???
   }
 }

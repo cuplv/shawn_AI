@@ -1,5 +1,4 @@
-import scala.util.Random
-import scala.collection.{BitSet, SortedSet}
+import scala.collection.{SortedSet}
 import scala.annotation.tailrec
 
 sealed trait Dir
@@ -54,21 +53,11 @@ trait Transfer[IState, ILoc<:Loc, IInterpretable<:Interpretable[ILoc]]{
 case class InvarMap[ILoc<:Loc, IState](loc2invar: Map[ILoc,IState], mod:SortedSet[ILoc]){
   def apply(loc:ILoc):Option[IState] = loc2invar.get(loc)
 
-//
-//  private var modifiedLocs:Option[SortedSet[ILoc]] = None
-//  def generateFreshModified(): Unit =
-//    modifiedLocs = Some(SortedSet[ILoc]())
-//    loc2invar.foreach{ case (k,_) =>
-//
-//    }
   def popMod = (mod.head, this.copy(mod = mod.tail))
   def insertLoc(loc:ILoc, state:IState):InvarMap[ILoc,IState] =
     this.copy(loc2invar + (loc -> state), mod + loc)
 }
-//trait Interpreter[ILoc, IState,
-//  ITransition<:Transition,
-//  IInterpretable<:Interpretable[ILoc, ITransition],
-//  ITransfer<:Transfer[IState,ITransition]]{
+
 case class Interpreter[IState,ILoc<:Loc,IInterpretable<:Interpretable[ILoc]](interpretable:IInterpretable,
                                                 transfer:Transfer[IState,ILoc,IInterpretable]){
   implicit val LocOrder: Ordering[ILoc] = (x: ILoc, y: ILoc) => {
@@ -92,23 +81,14 @@ case class Interpreter[IState,ILoc<:Loc,IInterpretable<:Interpretable[ILoc]](int
       in.insertLoc(tgtLoc,tgtState)
     }
   def fixedPoint():InvarMap[ILoc,IState] = {
+    @tailrec
     def iFixedPoint(invar:InvarMap[ILoc,IState]): InvarMap[ILoc,IState] = {
-      if(invar.mod.isEmpty) 
-        invar 
-      else 
+      if(invar.mod.isEmpty)
+        invar
+      else
         iFixedPoint(step(invar))
     }
     iFixedPoint(initialInvarMap)
   }
 
 }
-
-//[1] p: (lambda x:x x) (lambda x: x x)
-//   execution: 1 p -> 1 p -> 1 p -> ...
-// [0] while true [1] skip [2]
-//   execution: 0 -> 1 -> 2 -> 1 -> 2 ...
-
-// [0] if rand() then [1] x = 1 else [2] x = 2 fi [3]
-// first ex 0 -> 1[x:1] -> 3[x:1]
-// second ex 0 -> 2[x:2] -> 3[x:2]
-// step from [0] results in StateSelector that can give 1 or 2
