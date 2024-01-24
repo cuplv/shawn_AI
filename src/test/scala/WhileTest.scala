@@ -3,17 +3,21 @@
 class WhileTest extends munit.FunSuite {
   val prg = WhileSeq(WhileAssign("x", Num(1)), WhileAssign("y", Num(2)))
   test("take a couple steps forward into a simple program") {
-    val step1 = WhileInterpretable.concStep(prg, ForwardsDir, WhileInterpretable.getInitLoc(prg),
-      WhileInterpretable.getInitState)
-    val (step1loc, step1state) = step1.sample
-    val step2 = WhileInterpretable.concStep(prg, ForwardsDir, step1loc, step1state)
+    val interp = Interpreter(prg, IntervalTransfer)
+    val initial = interp.initialInvarMap
 
-    assert(step2.sample._2 == Map("x" -> 1))
+    val out = (1 until 8).foldLeft(initial){case (state,_) =>
+      println(state)
+      interp.step(state)
+    }
+
+    ???
   }
 
   test("fully execute a program forward"){
-    val res = WhileInterpretable.executeFwd(prg)
-    println(res)
-    assert(res == Map("x" -> 1, "y" -> 2))
+//    val res = WhileInterpretable.executeFwd(prg)
+//    println(res)
+//    assert(res == Map("x" -> 1, "y" -> 2))
+???
   }
 }
