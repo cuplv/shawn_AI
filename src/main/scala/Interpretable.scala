@@ -81,9 +81,8 @@ case class Interpreter[IState,ILoc<:Loc,IInterpretable<:Interpretable[ILoc]](int
   def step(in:InvarMap[ILoc,IState]):InvarMap[ILoc,IState] =
     val (srcLoc, in2) = in.popMod
     val srcState: IState = in(srcLoc).getOrElse(throw new IllegalStateException("src should always be defined"))
-    val fwdTrans = interpretable.transitionsFwd(srcLoc)
-    assert(fwdTrans.nonEmpty, "Empty forward transitions, are you at the end of the program?")
-    fwdTrans.get.foldLeft(in2){ case (in, tgtLoc) =>
+    val fwdTrans = interpretable.transitionsFwd(srcLoc).getOrElse(Seq.empty)
+    fwdTrans.foldLeft(in2){ case (in, tgtLoc) =>
       val tgtState = transfer.transfer(srcState,interpretable,srcLoc,tgtLoc)
 
       val currTgtState = in(tgtLoc).getOrElse(transfer.bottomValue)
@@ -92,6 +91,15 @@ case class Interpreter[IState,ILoc<:Loc,IInterpretable<:Interpretable[ILoc]](int
       else transfer.join(currTgtState,tgtState)
       in.insertLoc(tgtLoc,tgtState)
     }
+  def fixedPoint():InvarMap[ILoc,IState] = {
+    def iFixedPoint(invar:InvarMap[ILoc,IState]): InvarMap[ILoc,IState] = {
+      if(invar.mod.isEmpty) 
+        invar 
+      else 
+        iFixedPoint(step(invar))
+    }
+    iFixedPoint(initialInvarMap)
+  }
 
 }
 

@@ -10,9 +10,13 @@ class WhileTest extends munit.FunSuite {
       println(state)
       interp.step(state)
     }
-    val stateAtLast = out(prg.postLoc).get
-    assert( stateAtLast.asInstanceOf[SomeIntervalState].mem ==
-      Map("x" -> Interval(1,1), "y" -> Interval(2,2)) )
+    val stateAtLastSingleStep = out(prg.postLoc).get
+
+    val stateAtLastFixedPoint = interp.fixedPoint()(prg.postLoc).get
+    List(stateAtLastSingleStep,stateAtLastFixedPoint).foreach { stateAtLast =>
+      assert(stateAtLast.asInstanceOf[SomeIntervalState].mem ==
+        Map("x" -> Interval(1, 1), "y" -> Interval(2, 2)))
+    }
   }
 
   test("fully execute a program forward"){
