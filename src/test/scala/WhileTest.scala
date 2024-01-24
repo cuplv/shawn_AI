@@ -6,12 +6,13 @@ class WhileTest extends munit.FunSuite {
     val interp = Interpreter(prg, IntervalTransfer)
     val initial = interp.initialInvarMap
 
-    val out = (1 until 8).foldLeft(initial){case (state,_) =>
+    val out = (1 until 7).foldLeft(initial){case (state,_) =>
       println(state)
       interp.step(state)
     }
-
-    ???
+    val stateAtLast = out(prg.postLoc).get
+    assert( stateAtLast.asInstanceOf[SomeIntervalState].mem ==
+      Map("x" -> Interval(1,1), "y" -> Interval(2,2)) )
   }
 
   test("fully execute a program forward"){
