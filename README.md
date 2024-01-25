@@ -48,6 +48,15 @@ A later version of this will show how we can handle more complex programs and ad
 
 We recommend developing for this project using the Intellij IDE and importing as a SBT project.
 
+In order to test out the project, we recommend using the docker scripts: 
+
+1. Install docker (Windows/Mac: https://www.docker.com/products/docker-desktop/) (Ubuntu: https://docs.docker.com/engine/install/ubuntu/)
+2. Build the docker container with `./buildDocker.sh`
+3. Run the docker container with `./runDocker.sh`
+4. Note that on Windows you can run the docker commands in these two scripts directly
+5. Within the docker container you can run `sbt test` to see the output above and run the unit tests.
+ 
+Other useful sbt commands:
 You can compile code with `sbt compile`, run it with `sbt run`, test with `sbt test`, and `sbt console` will start a Scala 3 REPL.
 
 For more information on the sbt-dotty plugin, see the
