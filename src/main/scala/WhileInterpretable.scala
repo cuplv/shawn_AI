@@ -236,6 +236,7 @@ case class Interval(low:Int | Inf.type, high:Int | Inf.type) extends IntervalVal
     case (low:Int, high:Int) => low <= 0 || high >=0
     case (low:Int, Inf) => low <= 0
     case (Inf, high:Int) => high >=0
+    case (Inf, Inf) => false
   }
 
   override def join(other: IntervalVal): IntervalVal = other match
@@ -313,13 +314,14 @@ case object IntervalTransfer extends Transfer[IntervalState, WhileLoc,WhileCmd]{
         Interval(0, 0)
       } else
         BotVal
-
     case a => println(a); ???
 
   def transferStep(srcState:IntervalState, step:Step):IntervalState = step match
     case Nop => srcState
     case WhileAssign(Var(varname), rval) =>
       srcState.putVar(varname,transferRVal(srcState,rval))
+    case WhileAssign(a,b) =>
+      println(s"unimplemented $a = $b") ; ???
     case Assume(cond) =>
       val condEval = transferRVal(srcState,cond)
       if(condEval.truthEy){
