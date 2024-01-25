@@ -1,3 +1,5 @@
+import WhileWhile.WhileEPostCmd
+
 import java.util.UUID
 import scala.collection.View
 
@@ -5,7 +7,16 @@ import scala.collection.View
 type LocID = UUID
 trait WhileLoc extends Loc{
   def locID:LocID
-  def preTopo(other:Loc):Integer = ???
+  override def preTopo(interpretable:Interpretable[_],other:Loc):Integer = {
+      //    if(!interpretable.isInstanceOf[WhileCmd]){
+      //      return 0 // incomparable with other interpretables
+      //    }
+      //    val whileCmd = interpretable.asInstanceOf[WhileCmd]
+      //    val whileLoc = other.asInstanceOf[WhileLoc]
+      //    val c1 = whileCmd.findLoc(this)
+      //    val c2 = whileCmd.findLoc(whileLoc)
+    0 // TODO: implement reasonable topo ordering
+  }
 }
 
 case class WhilePre(locID:LocID) extends WhileLoc
@@ -23,6 +34,8 @@ trait WhileCmd extends Interpretable[WhileLoc]{
 
 sealed trait Step //while commands decomposed into small steps
 case object Nop extends Step
+
+case class Assume(cond:WhileRVal) extends Step
 
 case class WhileSeq(c1:WhileCmd, c2:WhileCmd) extends WhileCmd {
 
@@ -67,10 +80,7 @@ object WhileSeq{
 
 
 
-trait WhileRVal
-case class Num(n:Integer) extends WhileRVal
-
-case class WhileAssign(varname:String, rhs:WhileRVal) extends WhileCmd with Step{
+case class WhileAssign(lhs:WhileLVal, rhs:WhileRVal) extends WhileCmd with Step{
   val uuid = java.util.UUID.randomUUID
   override def id: UUID = uuid
   def findLoc(loc:WhileLoc):Option[WhileCmd] = if(id == loc.locID) Some(this) else None
@@ -94,6 +104,66 @@ case class WhileAssign(varname:String, rhs:WhileRVal) extends WhileCmd with Step
   override def postLoc: WhileLoc = WhilePost(id)
 }
 
+object WhileAssign {
+  def apply(name:String,rval:WhileRVal):WhileAssign = WhileAssign(Var(name),rval)
+
+}
+case class WhileWhile(cond:WhileRVal, cmd:WhileCmd) extends WhileCmd {
+
+  val uuid = java.util.UUID.randomUUID
+
+  override def getStep(pre: WhileLoc, post: WhileLoc): Step = (pre,post) match {
+    case (WhileWhile.WhileEPre(id1), WhileWhile.WhileETrue(id2)) if id1 == id2 && id1 == id => Assume(cond)
+    case (WhileWhile.WhileEPre(id1), WhileWhile.WhileEDone(id2)) if id1 == id2 && id1 == id => Assume(Not(cond))
+    case (WhileWhile.WhileETrue(id1), WhilePre(locID)) if id1 == id => Nop
+    case (WhileWhile.WhileEPostCmd(id1), WhileWhile.WhileEPre(id2)) if id1 == id2 && id == id1 =>
+      Assume(cond)
+    case (WhileWhile.WhileEPostCmd(id1), WhileWhile.WhileEDone(id2)) if id1 == id2 && id == id1 =>
+      Assume(Not(cond))
+  }
+
+  override def id: LocID = uuid
+
+  override def findLoc(loc: WhileLoc): Option[WhileCmd] = loc match{
+    case _:WhileWhile.WhileWhileLoc if loc.locID == id => Some(this)
+    case _ => cmd.findLoc(loc)
+  }
+
+  override def preLoc: WhileLoc = WhileWhile.WhileEPre(id)
+
+  override def postLoc: WhileLoc = WhileWhile.WhileEDone(id)
+
+  override def hasIncomingBackEdges(loc: WhileLoc): Boolean = ???
+
+  override def getInitLoc: WhileLoc = ???
+
+  override def transitionsFwd(loc: WhileLoc): Option[Iterable[WhileLoc]] = loc match
+    case WhileWhile.WhileEPre(locID) if locID == id =>
+      Some(Seq(WhileWhile.WhileETrue(id), WhileWhile.WhileEDone(id)))
+    case WhileWhile.WhileETrue(locID) if locID == id =>
+      Some(Seq(cmd.preLoc))
+    case l if l == cmd.postLoc => Some(Seq(WhileWhile.WhileEPostCmd(id)))
+    case WhileWhile.WhileEPostCmd(locID) if locID == id =>
+      Some(Seq(WhileWhile.WhileEPre(id), WhileWhile.WhileEDone(id)))
+    case WhilePre(locID) if locID != id => cmd.transitionsFwd(loc)
+
+  override def transitionsBkwd(loc: WhileLoc): Option[Iterable[WhileLoc]] = ???
+}
+
+object WhileWhile:
+  trait WhileWhileLoc extends WhileLoc
+  case class WhileEPre(locID: LocID) extends WhileWhileLoc
+  case class WhileETrue(locID: LocID) extends WhileWhileLoc
+  case class WhileEPostCmd(locID: LocID) extends WhileWhileLoc
+  case class WhileEDone(locID:LocID) extends WhileWhileLoc
+
+end WhileWhile
+
+trait WhileRVal
+case class Num(n:Integer) extends WhileRVal
+case class Not(whileRVal: WhileRVal) extends WhileRVal
+trait WhileLVal extends WhileRVal
+case class Var(name:String) extends WhileLVal
 
 sealed trait PrePost
 case object Pre extends PrePost
@@ -103,22 +173,70 @@ case object Post extends PrePost
 
 case object Inf
 
+trait IntervalVal{
+  def truthEy:Boolean
+  def falseEy:Boolean
+  def join(other:IntervalVal):IntervalVal
+}
 /**
  * Represents a numeric value within a defined interval (inclusive if number exclusive if inf)
  * @param low lower bound of interval
  * @param high upper bound of interval
  */
-case class Interval(low:Int | Inf.type, high:Int | Inf.type)
+case class Interval(low:Int | Inf.type, high:Int | Inf.type) extends IntervalVal{
+  def truthEy:Boolean = (low,high) match{
+    case (low:Int,high:Int) => low < 0 || high > 0
+    case (Inf,_) => true
+    case (_,Inf) => true
+  }
+  def falseEy:Boolean = (low,high) match{
+    case (low:Int, high:Int) => low <= 0 || high >=0
+    case (low:Int, Inf) => low <= 0
+    case (Inf, high:Int) => high >=0
+  }
+
+  override def join(other: IntervalVal): IntervalVal = other match
+    case BotVal => this
+    case Interval(otherLow, otherHigh) => {
+      val newLow = (otherLow,low) match{
+        case (Inf, _) => Inf
+        case (_, Inf) => Inf
+        case (v1:Int, v2:Int) if v1 < v2 => v1
+        case (v1:Int, v2:Int) => v2
+      }
+      val newHigh = (otherHigh,high) match{
+        case (Inf, _) => Inf
+        case (_, Inf) => Inf
+        case (v1:Int, v2:Int) if v1 > v2 => v1
+        case (v1:Int, v2:Int) => v2
+      }
+      Interval(newLow,newHigh)
+    }
+
+}
+case object BotVal extends IntervalVal{
+  override def truthEy: Boolean = false // cannot eval to true if unreachable
+  override def falseEy: Boolean = false // cannot eval to true if unreachable
+
+  override def join(other: IntervalVal): IntervalVal = other
+}
 
 
 sealed trait IntervalState{
-  def putVar(name:String, interval:Interval):IntervalState
+  def getVar(name:String):IntervalVal
+  def putVar(name:String, interval:IntervalVal):IntervalState
 }
-case class SomeIntervalState(mem: Map[String,Interval]) extends IntervalState{
-  override def putVar(name: String, interval: Interval): IntervalState = this.copy(mem = mem + (name -> interval))
+case class SomeIntervalState(mem: Map[String,IntervalVal]) extends IntervalState{
+  override def putVar(name: String, interval: IntervalVal): IntervalState = {
+    this.copy(mem = mem + (name -> interval))
+  }
+
+  override def getVar(name: String): IntervalVal = mem.getOrElse(name,BotVal)
 }
 case object BotIntervalState extends IntervalState{
-  override def putVar(name: String, interval: Interval): IntervalState = BotIntervalState
+  override def putVar(name: String, interval: IntervalVal): IntervalState = BotIntervalState
+
+  override def getVar(name: String): IntervalVal = BotVal
 }
 
 
@@ -137,21 +255,43 @@ case object IntervalTransfer extends Transfer[IntervalState, WhileLoc,WhileCmd]{
       transferStep(srcState,step)
     }.getOrElse(throw new IllegalStateException(s"location $srcLoc not found"))
   }
-  def transferRVal(srcState:IntervalState, rval:WhileRVal) :Interval = rval match
+  def transferRVal(srcState:IntervalState, rval:WhileRVal) :IntervalVal = rval match
     case Num(n) => Interval(n,n)
-    case _ => ???
+    case Var(n) => srcState.getVar(n)
+    case Not(v) =>
+      val toNeg = transferRVal(srcState, v)
+      if (toNeg.falseEy && toNeg.truthEy) {
+        Interval(0, 1)
+      } else if (toNeg.falseEy) {
+        Interval(1, 1)
+      } else if (toNeg.truthEy) {
+        Interval(0, 0)
+      } else
+        BotVal
+
+    case a => println(a); ???
 
   def transferStep(srcState:IntervalState, step:Step):IntervalState = step match
     case Nop => srcState
-    case WhileAssign(varname, rval) =>
+    case WhileAssign(Var(varname), rval) =>
       srcState.putVar(varname,transferRVal(srcState,rval))
+    case Assume(cond) =>
+      val condEval = transferRVal(srcState,cond)
+      if(condEval.truthEy){
+        srcState //TODO: narrowing
+      }else BotIntervalState
 
   override def join(s1: IntervalState, s2: IntervalState): IntervalState = (s1,s2) match{
     case (BotIntervalState,s2) => s2
     case (s1,BotIntervalState) => s1
     case (SomeIntervalState(mem1), SomeIntervalState(mem2)) =>
-      val combined = View(mem1,mem2)
-      SomeIntervalState(???)
+      val combined = mem1.toList ++ mem2.toList //TODO: inefficient concat
+      val newMap = combined.groupBy(a => a._1)
+        .map{case (k, vals) => vals.reduce{case ((n,v1),(_,v2)) => (n,v1.join(v2))}}.flatMap{
+          case t@(k,v:Interval) => Some(t)
+          case _ => None
+        }
+      SomeIntervalState(newMap)
   }
 
   def joinValue(v1:Interval,v2:Interval):Interval =

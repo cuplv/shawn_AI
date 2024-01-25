@@ -19,7 +19,16 @@ class WhileTest extends munit.FunSuite {
     }
   }
 
-  test("Reach a fixed point over a program with a loop"){
-???
+  test("Test simple terminating while loop"){
+    val prg =
+      WhileSeq(
+        WhileAssign("x",Num(1)),
+        WhileWhile(Var("x"), WhileAssign("x",Num(0)))
+      )
+    val interp = Interpreter(prg, IntervalTransfer)
+    val outState = interp.fixedPoint()
+    println(outState)
+    assertEquals(outState(prg.postLoc).asInstanceOf[SomeIntervalState].mem,
+      Map("x" -> Interval(0, 0))) //TODO: === still failing
   }
 }

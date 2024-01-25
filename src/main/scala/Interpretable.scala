@@ -11,7 +11,7 @@ trait Loc{
    * @param other  Compare whether `this` or `other` location comes first in the order
    * @return negative if `other` comes first, zero if same, positive if this comes first.
    */
-  def preTopo(other:Loc):Integer
+  def preTopo(interpretable:Interpretable[_],other:Loc):Integer
 }
 
 
@@ -19,7 +19,13 @@ trait Interpretable[ILoc] {
   def hasIncomingBackEdges(loc:ILoc):Boolean
 
   def getInitLoc:ILoc
-  
+
+  /**
+   *
+   * @param loc
+   * @return None if we cannot generate post commands from this location/cmd,
+   *         Some(list) for when we can generate locations
+   */
   def transitionsFwd(loc:ILoc):Option[Iterable[ILoc]]
   
   def transitionsBkwd(loc:ILoc):Option[Iterable[ILoc]]
@@ -55,17 +61,19 @@ case class InvarMap[ILoc<:Loc, IState](loc2invar: Map[ILoc,IState], mod:SortedSe
 
   def popMod = (mod.head, this.copy(mod = mod.tail))
   def insertLoc(loc:ILoc, state:IState):InvarMap[ILoc,IState] =
-    this.copy(loc2invar + (loc -> state), mod + loc)
+    val oldLoc = this(loc)
+    this.copy(loc2invar + (loc -> state), if(oldLoc.contains(state)) mod else mod + loc)
 }
 
 case class Interpreter[IState,ILoc<:Loc,IInterpretable<:Interpretable[ILoc]](interpretable:IInterpretable,
                                                 transfer:Transfer[IState,ILoc,IInterpretable]){
   implicit val LocOrder: Ordering[ILoc] = (x: ILoc, y: ILoc) => {
-    x.preTopo(y)
+    x.preTopo(interpretable,y)
   }
   def initialInvarMap:InvarMap[ILoc,IState] = {
     InvarMap(Map(interpretable.getInitLoc -> transfer.getInitState()), SortedSet(interpretable.getInitLoc))
   }
+  val dbg = false
   
   def step(in:InvarMap[ILoc,IState]):InvarMap[ILoc,IState] =
     val (srcLoc, in2) = in.popMod
@@ -78,6 +86,13 @@ case class Interpreter[IState,ILoc<:Loc,IInterpretable<:Interpretable[ILoc]](int
       val insState = if(interpretable.hasIncomingBackEdges(tgtLoc))
         transfer.widen(currTgtState,tgtState)
       else transfer.join(currTgtState,tgtState)
+
+      if(dbg){
+        println(s"src loc: ${srcLoc}")
+        println(s"src state: ${srcState}")
+        println(s"tgt loc: ${tgtLoc}")
+        println(s"tgt state${tgtState}")
+      }
       in.insertLoc(tgtLoc,tgtState)
     }
   def fixedPoint():InvarMap[ILoc,IState] = {
