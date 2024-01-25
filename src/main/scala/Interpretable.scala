@@ -30,6 +30,7 @@ trait Interpretable[ILoc] {
   
   def transitionsBkwd(loc:ILoc):Option[Iterable[ILoc]]
 
+  def toStringWithInvar[IState](invar:Map[ILoc,IState], printPrePost:Boolean = true):String
 }
 
 trait Transfer[IState, ILoc<:Loc, IInterpretable<:Interpretable[ILoc]]{
@@ -73,7 +74,7 @@ case class Interpreter[IState,ILoc<:Loc,IInterpretable<:Interpretable[ILoc]](int
   def initialInvarMap:InvarMap[ILoc,IState] = {
     InvarMap(Map(interpretable.getInitLoc -> transfer.getInitState()), SortedSet(interpretable.getInitLoc))
   }
-  val dbg = false
+  val dbg = true
   
   def step(in:InvarMap[ILoc,IState]):InvarMap[ILoc,IState] =
     val (srcLoc, in2) = in.popMod
@@ -88,16 +89,19 @@ case class Interpreter[IState,ILoc<:Loc,IInterpretable<:Interpretable[ILoc]](int
       else transfer.join(currTgtState,tgtState)
 
       if(dbg){
-        println(s"src loc: ${srcLoc}")
-        println(s"src state: ${srcState}")
-        println(s"tgt loc: ${tgtLoc}")
-        println(s"tgt state${tgtState}")
+//        println(s"src loc: ${srcLoc}")
+//        println(s"src state: ${srcState}")
+//        println(s"tgt loc: ${tgtLoc}")
+//        println(s"tgt state${tgtState}")
       }
-      in.insertLoc(tgtLoc,tgtState)
+      in.insertLoc(tgtLoc,insState)
     }
   def fixedPoint():InvarMap[ILoc,IState] = {
     @tailrec
     def iFixedPoint(invar:InvarMap[ILoc,IState]): InvarMap[ILoc,IState] = {
+      if(dbg){
+        println(interpretable.toStringWithInvar(invar.loc2invar,true))
+      }
       if(invar.mod.isEmpty)
         invar
       else

@@ -7,6 +7,7 @@ import scala.collection.View
 type LocID = UUID
 trait WhileLoc extends Loc{
   def locID:LocID
+  def cmd:WhileCmd
   override def preTopo(interpretable:Interpretable[_],other:Loc):Integer = {
       //    if(!interpretable.isInstanceOf[WhileCmd]){
       //      return 0 // incomparable with other interpretables
@@ -19,8 +20,8 @@ trait WhileLoc extends Loc{
   }
 }
 
-case class WhilePre(locID:LocID) extends WhileLoc
-case class WhilePost(locID:LocID) extends WhileLoc
+case class WhilePre(locID:LocID, cmd:WhileCmd) extends WhileLoc
+case class WhilePost(locID:LocID, cmd:WhileCmd) extends WhileLoc
 
 trait WhileCmd extends Interpretable[WhileLoc]{
   def getStep(pre:WhileLoc, post:WhileLoc):Step
@@ -29,7 +30,7 @@ trait WhileCmd extends Interpretable[WhileLoc]{
 
   def preLoc:WhileLoc
   def postLoc:WhileLoc
-  def toStringWithInvar[T](invar:Map[WhileLoc,T], printPrePost:Boolean = true):String
+//  def toStringWithInvar[T](invar:Map[WhileLoc,T], printPrePost:Boolean = true):String
 }
 
 
@@ -49,14 +50,14 @@ case class WhileSeq(c1:WhileCmd, c2:WhileCmd) extends WhileCmd {
     else
       c1.findLoc(loc).orElse(c2.findLoc(loc))
 
-  override def getInitLoc: WhileLoc = WhileSeq.PreC1(id)
+  override def getInitLoc: WhileLoc = WhileSeq.PreC1(id,this)
 
   override def transitionsFwd(loc: WhileLoc): Option[Iterable[WhileLoc]] =
     loc match {
-      case WhileSeq.PreC1(lic) if lic == id => Some(Seq(c1.preLoc))
-      case s if s == c1.postLoc => Some(Seq(WhileSeq.PostC1(id)))
-      case WhileSeq.PostC1(lic) if lic == id => Some(Seq(c2.preLoc))
-      case s if s == c2.postLoc => Some(Seq(WhileSeq.PostC2(id)))
+      case s if s == c2.postLoc => Some(Seq(WhileSeq.PostC2(id,this)))
+      case WhileSeq.PreC1(lic,_) if lic == id => Some(Seq(c1.preLoc))
+      case s if s == c1.postLoc => Some(Seq(WhileSeq.PostC1(id,this)))
+      case WhileSeq.PostC1(lic,_) if lic == id => Some(Seq(c2.preLoc))
       case loc =>
         c1.transitionsFwd(loc).orElse(c2.transitionsFwd(loc))
     }
@@ -67,13 +68,13 @@ case class WhileSeq(c1:WhileCmd, c2:WhileCmd) extends WhileCmd {
 
   override def getStep(pre: WhileLoc, post: WhileLoc): Step = Nop
 
-  override def preLoc: WhileLoc = WhileSeq.PreC1(id)
+  override def preLoc: WhileLoc = WhileSeq.PreC1(id,this)
 
-  override def postLoc: WhileLoc = WhileSeq.PostC2(id)
+  override def postLoc: WhileLoc = WhileSeq.PostC2(id,this)
 
   override def toStringWithInvar[T](invar: Map[WhileLoc, T], printPrePost: Boolean): String = {
     val rest = s"${c1.toStringWithInvar(invar, false)} " +
-      s"${invar.getOrElse(WhileSeq.PostC1(id), BotIntervalState)} ; ${c2.toStringWithInvar(invar,false)}"
+      s"${invar.getOrElse(WhileSeq.PostC1(id,this), BotIntervalState)} ; ${c2.toStringWithInvar(invar,false)}"
     if(printPrePost){
       s"${invar.getOrElse(preLoc, BotIntervalState)} ${rest} ${invar.getOrElse(postLoc,BotIntervalState)}"
     } else rest
@@ -82,9 +83,9 @@ case class WhileSeq(c1:WhileCmd, c2:WhileCmd) extends WhileCmd {
 
 object WhileSeq{
   sealed trait SeqLoc extends WhileLoc
-  case class PreC1(locID:LocID) extends SeqLoc
-  case class PostC1(locID:LocID) extends SeqLoc
-  case class PostC2(locID:LocID) extends SeqLoc
+  case class PreC1(locID:LocID, cmd:WhileCmd) extends SeqLoc
+  case class PostC1(locID:LocID, cmd:WhileCmd) extends SeqLoc
+  case class PostC2(locID:LocID, cmd:WhileCmd) extends SeqLoc
 }
 
 
@@ -108,9 +109,9 @@ case class WhileAssign(lhs:WhileLVal, rhs:WhileRVal) extends WhileCmd with Step{
 
   override def getStep(pre: WhileLoc, post: WhileLoc): Step = this
 
-  override def preLoc: WhileLoc = WhilePre(id)
+  override def preLoc: WhileLoc = WhilePre(id, this)
 
-  override def postLoc: WhileLoc = WhilePost(id)
+  override def postLoc: WhileLoc = WhilePost(id, this)
 
   override def toStringWithInvar[T](invar: Map[WhileLoc, T], printPrePost: Boolean): String = {
     val rest = s"$lhs = $rhs"
@@ -129,13 +130,19 @@ case class WhileWhile(cond:WhileRVal, cmd:WhileCmd) extends WhileCmd {
   val uuid = java.util.UUID.randomUUID
 
   override def getStep(pre: WhileLoc, post: WhileLoc): Step = (pre,post) match {
-    case (WhileWhile.WhileEPre(id1), WhileWhile.WhileETrue(id2)) if id1 == id2 && id1 == id => Assume(cond)
-    case (WhileWhile.WhileEPre(id1), WhileWhile.WhileEDone(id2)) if id1 == id2 && id1 == id => Assume(Not(cond))
-    case (WhileWhile.WhileETrue(id1), WhilePre(locID)) if id1 == id => Nop
-    case (WhileWhile.WhileEPostCmd(id1), WhileWhile.WhileEPre(id2)) if id1 == id2 && id == id1 =>
+    case (WhileWhile.WhileEPre(id1,_), WhileWhile.WhileETrue(id2,_)) if id1 == id2 && id1 == id => Assume(cond)
+    case (WhileWhile.WhileEPre(id1,_), WhileWhile.WhileEDone(id2,_)) if id1 == id2 && id1 == id => Assume(Not(cond))
+    case (WhileWhile.WhileETrue(id1,_), WhilePre(locID, _)) if id1 == id => Nop
+    case (WhileWhile.WhileEPostCmd(id1,_), WhileWhile.WhileEPre(id2,_)) if id1 == id2 && id == id1 =>
       Assume(cond)
-    case (WhileWhile.WhileEPostCmd(id1), WhileWhile.WhileEDone(id2)) if id1 == id2 && id == id1 =>
+    case (WhileWhile.WhileEPostCmd(id1,_), WhileWhile.WhileEDone(id2,_)) if id1 == id2 && id == id1 =>
       Assume(Not(cond))
+    case (WhileWhile.WhileEDone(id1,_), tgt) if id1 == id && tgt.locID != id => Nop
+    case (a,b) =>
+      println(a)
+      println(b)
+      ???
+
   }
 
   override def id: LocID = uuid
@@ -145,29 +152,31 @@ case class WhileWhile(cond:WhileRVal, cmd:WhileCmd) extends WhileCmd {
     case _ => cmd.findLoc(loc)
   }
 
-  override def preLoc: WhileLoc = WhileWhile.WhileEPre(id)
+  override def preLoc: WhileLoc = WhileWhile.WhileEPre(id,this)
 
-  override def postLoc: WhileLoc = WhileWhile.WhileEDone(id)
+  override def postLoc: WhileLoc = WhileWhile.WhileEDone(id,this)
 
   override def hasIncomingBackEdges(loc: WhileLoc): Boolean = ???
 
   override def getInitLoc: WhileLoc = ???
 
   override def transitionsFwd(loc: WhileLoc): Option[Iterable[WhileLoc]] = loc match
-    case WhileWhile.WhileEPre(locID) if locID == id =>
-      Some(Seq(WhileWhile.WhileETrue(id), WhileWhile.WhileEDone(id)))
-    case WhileWhile.WhileETrue(locID) if locID == id =>
+    case WhileWhile.WhileEPre(locID,_) if locID == id =>
+      Some(Seq(WhileWhile.WhileETrue(id,this), WhileWhile.WhileEDone(id,this)))
+    case WhileWhile.WhileETrue(locID,_) if locID == id =>
       Some(Seq(cmd.preLoc))
-    case l if l == cmd.postLoc => Some(Seq(WhileWhile.WhileEPostCmd(id)))
-    case WhileWhile.WhileEPostCmd(locID) if locID == id =>
-      Some(Seq(WhileWhile.WhileEPre(id), WhileWhile.WhileEDone(id)))
-    case WhilePre(locID) if locID != id => cmd.transitionsFwd(loc)
+    case l if l == cmd.postLoc => Some(Seq(WhileWhile.WhileEPostCmd(id,this)))
+    case WhileWhile.WhileEPostCmd(locID,_) if locID == id =>
+      Some(Seq(WhileWhile.WhileEPre(id,this), WhileWhile.WhileEDone(id,this)))
+    case WhilePre(locID, cmd) if locID != id => cmd.transitionsFwd(loc)
+    case loc if loc.locID != id => cmd.transitionsFwd(loc)
+
 
   override def transitionsBkwd(loc: WhileLoc): Option[Iterable[WhileLoc]] = ???
 
   override def toStringWithInvar[T](invar: Map[WhileLoc, T], printPrePost: Boolean): String = {
-    val rest = s"WHILE $cond DO ${invar.getOrElse(WhileWhile.WhileETrue(id), BotIntervalState)} " +
-      s"${cmd.toStringWithInvar(invar,false)} ${invar.getOrElse(WhileWhile.WhileEPostCmd(id), BotIntervalState)} ELIHW"
+    val rest = s"WHILE $cond DO ${invar.getOrElse(WhileWhile.WhileETrue(id,this), BotIntervalState)} " +
+      s"${cmd.toStringWithInvar(invar,false)} ${invar.getOrElse(WhileWhile.WhileEPostCmd(id,this), BotIntervalState)} ELIHW"
     if(printPrePost){
       s"${invar(preLoc)} ${rest} ${invar(postLoc)}"
     } else rest
@@ -176,10 +185,10 @@ case class WhileWhile(cond:WhileRVal, cmd:WhileCmd) extends WhileCmd {
 
 object WhileWhile:
   trait WhileWhileLoc extends WhileLoc
-  case class WhileEPre(locID: LocID) extends WhileWhileLoc
-  case class WhileETrue(locID: LocID) extends WhileWhileLoc
-  case class WhileEPostCmd(locID: LocID) extends WhileWhileLoc
-  case class WhileEDone(locID:LocID) extends WhileWhileLoc
+  case class WhileEPre(locID: LocID, cmd:WhileCmd) extends WhileWhileLoc
+  case class WhileETrue(locID: LocID, cmd:WhileCmd) extends WhileWhileLoc
+  case class WhileEPostCmd(locID: LocID, cmd:WhileCmd) extends WhileWhileLoc
+  case class WhileEDone(locID:LocID, cmd:WhileCmd) extends WhileWhileLoc
 
 end WhileWhile
 
@@ -315,7 +324,8 @@ case object IntervalTransfer extends Transfer[IntervalState, WhileLoc,WhileCmd]{
       val condEval = transferRVal(srcState,cond)
       if(condEval.truthEy){
         srcState //TODO: narrowing
-      }else BotIntervalState
+      }else
+        BotIntervalState
 
   override def join(s1: IntervalState, s2: IntervalState): IntervalState = (s1,s2) match{
     case (BotIntervalState,s2) => s2
