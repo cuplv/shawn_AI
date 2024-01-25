@@ -29,9 +29,20 @@ class WhileTest extends munit.FunSuite {
       )
     val interp = Interpreter(prg, IntervalTransfer)
     val outState = interp.fixedPoint()
-    println(outState)
     println(prg.toStringWithInvar(outState.loc2invar, true))
     assertEquals(outState(prg.postLoc).get.asInstanceOf[SomeIntervalState].mem,
       Map("x" -> Interval(0, 1))) //TODO: should be 0,0 when we can narrow
+  }
+
+  test("Test simple non-terminating while loop"){
+    val prg =
+      WhileSeq(
+        WhileAssign("x", Num(1)),
+        WhileWhile(Var("x"), WhileAssign("x", Num(1)))
+      )
+    val interp = Interpreter(prg, IntervalTransfer)
+    val outState = interp.fixedPoint()
+    // assert exit is bottom or unreachable
+    assertEquals(outState(prg.postLoc).getOrElse(BotIntervalState), BotIntervalState)
   }
 }
