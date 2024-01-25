@@ -4,6 +4,15 @@ This is a repository for testing out ideas for building abstract interpreters.
 
 Currently, we have an interval domain implemented with a simple while language.
 Unit tests may be found in `src/test/WhileTest.scala` and run with `sbt test`.
+Unit tests can be a great way to understand the whole project so I suggest starting there.
+
+### Architecture notes
+The most important file to look at in the implementation is `src/main/Interpretable.scala`.
+This file contains the `Interpreter` class that executes the defined abstract interpretation.
+Traits `Loc` and `Interpretable` define an interface to some kind of underlying program (bytecode, AST, etc).
+What is exposed from a program is methods for getting the initial location and transitions to other locations in the program.
+Additionally, the `toStringWithInvar` is a debugging method that prints the program with the computed invariant (e.g. see the steps in example 1).
+Semantics, the abstract domain, and operations such as join and widen are defined by implementing the `Transfer` class.
 
 ### Example 1: terminating while loop
 Below is an example of computing the interval analysis on a simple while program.
@@ -35,13 +44,21 @@ A later version of this will show how we can handle more complex programs and ad
 {} Var(x) = Num(1) {x -> [1 , 1]} ; WHILE Var(x) DO {x -> [1 , 1]} Var(x) = Num(0) {x -> [0 , 0]} ELIHW {x -> [0 , 1]}
 ```
 
+Notes
+- The condition on the while loop follows C semantics: a zero value is false and any other value is true.
+- This particular example terminates without widening but examples requiring widening will be implemented soon (see TODO).
+- The last abstract domain has `x->[0,1]` which is imprecise as we should know `x->[0,0]`.  We need to implement narrowing before this works (see TODO).
+
 ### TODO
 [ ] add plus
 [ ] Implement back edge detection for widening
 [ ] Implement widening
 [ ] Implement narrowing
+[ ] Figure out a cleaner way to separate the semantics of a program and the abstract domain/transfer functions
 [ ] Extract base transfer function language that can be shared by multiple object langauges (`Step` currently in `WhileInterpretable.scala`)
 [ ] Add an abstract domain and find way to compose
+[ ] Document how to add object languages
+[ ] Document how to add domains
 
 
 ### Build tool help
