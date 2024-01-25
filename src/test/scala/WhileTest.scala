@@ -1,5 +1,7 @@
 // For more information on writing tests, see
 // https://scalameta.org/munit/docs/getting-started.html
+
+import munit.Clue.generate
 class WhileTest extends munit.FunSuite {
   test("take a couple steps forward into a simple program") {
     val prg = WhileSeq(WhileAssign("x", Num(1)), WhileAssign("y", Num(2)))
@@ -28,6 +30,7 @@ class WhileTest extends munit.FunSuite {
     val interp = Interpreter(prg, IntervalTransfer)
     val outState = interp.fixedPoint()
     println(outState)
+    println(prg.toStringWithInvar(outState.loc2invar, true))
     assertEquals(outState(prg.postLoc).asInstanceOf[SomeIntervalState].mem,
       Map("x" -> Interval(0, 0))) //TODO: === still failing
   }

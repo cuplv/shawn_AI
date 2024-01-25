@@ -29,6 +29,7 @@ trait WhileCmd extends Interpretable[WhileLoc]{
 
   def preLoc:WhileLoc
   def postLoc:WhileLoc
+  def toStringWithInvar[T](invar:Map[WhileLoc,T], printPrePost:Boolean = true):String
 }
 
 
@@ -69,6 +70,14 @@ case class WhileSeq(c1:WhileCmd, c2:WhileCmd) extends WhileCmd {
   override def preLoc: WhileLoc = WhileSeq.PreC1(id)
 
   override def postLoc: WhileLoc = WhileSeq.PostC2(id)
+
+  override def toStringWithInvar[T](invar: Map[WhileLoc, T], printPrePost: Boolean): String = {
+    val rest = s"${c1.toStringWithInvar(invar, false)} " +
+      s"${invar.getOrElse(WhileSeq.PostC1(id), BotIntervalState)} ; ${c2.toStringWithInvar(invar,false)}"
+    if(printPrePost){
+      s"${invar.getOrElse(preLoc, BotIntervalState)} ${rest} ${invar.getOrElse(postLoc,BotIntervalState)}"
+    } else rest
+  }
 }
 
 object WhileSeq{
@@ -102,6 +111,13 @@ case class WhileAssign(lhs:WhileLVal, rhs:WhileRVal) extends WhileCmd with Step{
   override def preLoc: WhileLoc = WhilePre(id)
 
   override def postLoc: WhileLoc = WhilePost(id)
+
+  override def toStringWithInvar[T](invar: Map[WhileLoc, T], printPrePost: Boolean): String = {
+    val rest = s"$lhs = $rhs"
+    if(printPrePost){
+      s"${invar(preLoc)} ${rest} ${invar(postLoc)}"
+    } else rest
+  }
 }
 
 object WhileAssign {
@@ -148,6 +164,14 @@ case class WhileWhile(cond:WhileRVal, cmd:WhileCmd) extends WhileCmd {
     case WhilePre(locID) if locID != id => cmd.transitionsFwd(loc)
 
   override def transitionsBkwd(loc: WhileLoc): Option[Iterable[WhileLoc]] = ???
+
+  override def toStringWithInvar[T](invar: Map[WhileLoc, T], printPrePost: Boolean): String = {
+    val rest = s"WHILE $cond DO ${invar.getOrElse(WhileWhile.WhileETrue(id), BotIntervalState)} " +
+      s"${cmd.toStringWithInvar(invar,false)} ${invar.getOrElse(WhileWhile.WhileEPostCmd(id), BotIntervalState)} ELIHW"
+    if(printPrePost){
+      s"${invar(preLoc)} ${rest} ${invar(postLoc)}"
+    } else rest
+  }
 }
 
 object WhileWhile:
@@ -184,6 +208,16 @@ trait IntervalVal{
  * @param high upper bound of interval
  */
 case class Interval(low:Int | Inf.type, high:Int | Inf.type) extends IntervalVal{
+  override def toString():String =
+    val first = low match{
+      case i:Int => s"[$i"
+      case Inf => s"(∞"
+    }
+    val last = high match{
+      case i:Int => s"$i]"
+      case Inf => s"∞)"
+    }
+    s"$first , $last"
   def truthEy:Boolean = (low,high) match{
     case (low:Int,high:Int) => low < 0 || high > 0
     case (Inf,_) => true
@@ -227,6 +261,7 @@ sealed trait IntervalState{
   def putVar(name:String, interval:IntervalVal):IntervalState
 }
 case class SomeIntervalState(mem: Map[String,IntervalVal]) extends IntervalState{
+  override def toString() = s"{${mem.toList.map{a => s"${a._1} -> ${a._2}"}.mkString(",")}}"
   override def putVar(name: String, interval: IntervalVal): IntervalState = {
     this.copy(mem = mem + (name -> interval))
   }
@@ -234,6 +269,7 @@ case class SomeIntervalState(mem: Map[String,IntervalVal]) extends IntervalState
   override def getVar(name: String): IntervalVal = mem.getOrElse(name,BotVal)
 }
 case object BotIntervalState extends IntervalState{
+  override def toString() = "\u22A5"
   override def putVar(name: String, interval: IntervalVal): IntervalState = BotIntervalState
 
   override def getVar(name: String): IntervalVal = BotVal
