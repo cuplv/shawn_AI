@@ -14,8 +14,16 @@ What is exposed from a program is methods for getting the initial location and t
 Additionally, the `toStringWithInvar` is a debugging method that prints the program with the computed invariant (e.g. see the steps in example 1).
 Semantics, the abstract domain, and operations such as join and widen are defined by implementing the `Transfer` class.
 
-### Example 1: terminating while loop
-Below is an example of computing the interval analysis on a simple while program.
+For example, we can enumerate locations in a simple while program:
+
+`[1] Var(x) = Num(1) [2] ; WHILE Var(x) DO [3] Var(x) = Num(0) [4] ELIHW [5]`
+
+Each location such as `[1]` represents a control flow location before, after, or between atomic steps.
+The philosophy of the architecture above is that invariants are a map from location to abstract states.
+Transfer goes from a source location to a target location under a given program.
+
+### Example 1: simple terminating while loop
+Below is an example of computing the interval analysis on the previous while program.
 This example is printed by the unit test "Test simple terminating while loop".
 Initially, each program location has the invariant `⊥` representing an unreachable location.
 We first set the initial state of the program to an emtpy memory `{}`.
@@ -48,6 +56,30 @@ Notes
 - The condition on the while loop follows C semantics: a zero value is false and any other value is true.
 - This particular example terminates without widening but examples requiring widening will be implemented soon (see TODO).
 - The last abstract domain has `x->[0,1]` which is imprecise as we should know `x->[0,0]`.  We need to implement narrowing before this works (see TODO).
+
+### Example 2: terminating while loop requiring widening (TODO)
+
+The following is an example of a while program that terminates but needs widening.
+We assume that the `n` value comes from a non-deterministic source such as user input.
+
+`{n -> (∞,∞)} i = 1 ⊥; WHILE i<n ⊥ DO i = i+1 ⊥ ELIHW ⊥`
+
+Without the widening operator we may take the transfer function an arbitrarily large number of times without terminating.
+
+`{n -> (∞,∞)} i = 1 {i->[1,1336], n -> (∞,∞)}; WHILE i<n DO {i->[1,1336], n -> (∞,∞)} i = i+1 {i->[1,1337], n -> (∞,∞)} ELIHW {i->[1,1337], n -> (∞,∞)}`
+
+Since `1337 > T` the transfer and join operators will continuously change the abstract domain on each pass.
+The key is to expand the abstraction in a way that terminates in a finite number of steps.
+We call this the widen operator and apply it anywhere that there is a back edge in the program.
+For example location `[2]` below has an edge backwards from location `[4]` so we widen when joining the state from `[4]`. 
+
+`[1] Var(x) = Num(1) [2] ; WHILE Var(x) DO [3] Var(x) = Num(0) [4] ELIHW [5]`
+
+Resulting in the following abstract state that terminates.
+
+
+`{n -> (∞,∞)} i = 1 {i->[1,∞], n -> (∞,∞)}; WHILE i<n DO {i->[1,∞], n -> (∞,∞)} i = i+1 {i->[1,∞], n -> (∞,∞)} ELIHW {i->[1,∞], n -> (∞,∞)}`
+
 
 ### TODO
 [ ] add plus
