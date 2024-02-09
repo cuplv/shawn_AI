@@ -106,7 +106,7 @@ trait LogiState[IState]{
 
 
 //TODO: unused, delete later
-case object IntervalAbstraction extends Transfer[IState, UnstructuredLoc,Unstructured]{
+case object BasicIntervalAbstraction extends Transfer[IntervalState, UnstructuredLoc,Unstructured]{
 
   override def getDirection: Dir = ForwardsDir
 
