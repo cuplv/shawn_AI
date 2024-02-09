@@ -4,8 +4,12 @@
     <output url="file://$MODULE_DIR$/../../project/target" />
     <exclude-output />
     <content url="file://$MODULE_DIR$/../../project" />
-    <orderEntry type="jdk" jdkName="13" jdkType="JavaSDK" />
     <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="jdk" jdkName="13" jdkType="JavaSDK" />
+    <orderEntry type="library" name="BSP: /Users/shawnmeier/.sbt/boot/scala-2.12.18/org.scala-sbt/sbt/1.9.7/jline-reader-3.19.0" level="project" />
+    <orderEntry type="library" name="BSP: /Users/shawnmeier/.sbt/boot/scala-2.12.18/org.scala-sbt/sbt/1.9.7/jline-terminal-3.19.0" level="project" />
+    <orderEntry type="library" name="BSP: /Users/shawnmeier/.sbt/boot/scala-2.12.18/org.scala-sbt/sbt/1.9.7/jline-terminal-jna-3.19.0" level="project" />
+    <orderEntry type="library" name="BSP: /Users/shawnmeier/.sbt/boot/scala-2.12.18/org.scala-sbt/sbt/1.9.7/test-interface-1.0" level="project" />
     <orderEntry type="library" name="BSP: actions_2.12-1.9.7" level="project" />
     <orderEntry type="library" name="BSP: caffeine-2.8.5" level="project" />
     <orderEntry type="library" name="BSP: checker-qual-3.4.1" level="project" />
@@ -27,11 +31,8 @@
     <orderEntry type="library" name="BSP: jansi-2.1.0" level="project" />
     <orderEntry type="library" name="BSP: jline-2.14.7-sbt-a1b0ffbb8f64bb820f4f84a0c07a0c0964507493" level="project" />
     <orderEntry type="library" name="BSP: jline-builtins-3.19.0" level="project" />
-    <orderEntry type="library" name="BSP: jline-reader-3.19.0__1" level="project" />
     <orderEntry type="library" name="BSP: jline-style-3.19.0" level="project" />
-    <orderEntry type="library" name="BSP: jline-terminal-3.19.0__1" level="project" />
     <orderEntry type="library" name="BSP: jline-terminal-jansi-3.19.0" level="project" />
-    <orderEntry type="library" name="BSP: jline-terminal-jna-3.19.0__1" level="project" />
     <orderEntry type="library" name="BSP: jna-5.13.0" level="project" />
     <orderEntry type="library" name="BSP: jna-platform-5.13.0" level="project" />
     <orderEntry type="library" name="BSP: jsch-0.1.54" level="project" />
@@ -90,7 +91,6 @@
     <orderEntry type="library" name="BSP: tasks_2.12-1.9.7" level="project" />
     <orderEntry type="library" name="BSP: template-resolver-0.1" level="project" />
     <orderEntry type="library" name="BSP: test-agent-1.9.7" level="project" />
-    <orderEntry type="library" name="BSP: test-interface-1.0__1" level="project" />
     <orderEntry type="library" name="BSP: testing_2.12-1.9.7" level="project" />
     <orderEntry type="library" name="BSP: util-cache_2.12-1.9.7" level="project" />
     <orderEntry type="library" name="BSP: util-control_2.12-1.9.7" level="project" />
@@ -112,7 +112,7 @@
     <orderEntry type="library" name="BSP: zinc_2.12-1.9.5" level="project" />
   </component>
   <component name="SbtModule">
-    <option name="buildForURI" value="file:$MODULE_DIR$/../../#root-build" />
-    <option name="imports" value="import _root_.scala.xml.{TopScope=&gt;SUB:DOLLARscope}, import _root_.sbt._, import _root_.sbt.Keys._, import _root_.sbt.nio.Keys._, import _root_.sbt.ScriptedPlugin.autoImport._, _root_.sbt.plugins.JUnitXmlReportPlugin.autoImport._, _root_.sbt.plugins.MiniDependencyTreePlugin.autoImport._, import _root_.sbt.plugins.IvyPlugin, _root_.sbt.plugins.JvmPlugin, _root_.sbt.plugins.CorePlugin, _root_.sbt.ScriptedPlugin, _root_.sbt.plugins.SbtPlugin, _root_.sbt.plugins.SemanticdbPlugin, _root_.sbt.plugins.JUnitXmlReportPlugin, _root_.sbt.plugins.Giter8TemplatePlugin, _root_.sbt.plugins.MiniDependencyTreePlugin, import SUB:DOLLARa11461a58a6ef362274c.`root`" />
+    <option name="buildForURI" value="file:$MODULE_DIR$/../../#root/Test" />
+    <option name="imports" value="import _root_.scala.xml.{TopScope=&gt;SUB:DOLLARscope}, import _root_.sbt._, import _root_.sbt.Keys._, import _root_.sbt.nio.Keys._, import _root_.sbt.ScriptedPlugin.autoImport._, _root_.sbt.plugins.JUnitXmlReportPlugin.autoImport._, _root_.sbt.plugins.MiniDependencyTreePlugin.autoImport._, import _root_.sbt.plugins.IvyPlugin, _root_.sbt.plugins.JvmPlugin, _root_.sbt.plugins.CorePlugin, _root_.sbt.ScriptedPlugin, _root_.sbt.plugins.SbtPlugin, _root_.sbt.plugins.SemanticdbPlugin, _root_.sbt.plugins.JUnitXmlReportPlugin, _root_.sbt.plugins.Giter8TemplatePlugin, _root_.sbt.plugins.MiniDependencyTreePlugin, import SUB:DOLLAR29b55a3f587f29c48827.`root`" />
   </component>
 </module>
