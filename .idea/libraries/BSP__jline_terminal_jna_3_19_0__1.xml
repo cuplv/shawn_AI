@@ -1,9 +1,0 @@
-<component name="libraryTable">
-  <library name="BSP: jline-terminal-jna-3.19.0__1" external-system-id="BSP">
-    <CLASSES>
-      <root url="jar://$USER_HOME$/.sbt/boot/scala-2.12.18/org.scala-sbt/sbt/1.9.7/jline-terminal-jna-3.19.0.jar!/" />
-    </CLASSES>
-    <JAVADOC />
-    <SOURCES />
-  </library>
-</component>
