@@ -1,15 +1,37 @@
-sealed trait LogicalFormula
-case class LAnd(v1:LogicalFormula, v2:LogicalFormula) extends LogicalFormula
-case class LOr(v1:LogicalFormula, v2:LogicalFormula) extends LogicalFormula
-case class LNot(v:LogicalFormula) extends LogicalFormula
-case class LEq(v1:ValueFormula, v2:ValueFormula) extends LogicalFormula
-case class LLt(v1:ValueFormula, v2:ValueFormula) extends LogicalFormula
-case object LTrue extends LogicalFormula
-case object LFalse extends LogicalFormula
+sealed trait LogicalFormula{
+  def symbols:Set[VVar]
+}
+case class LAnd(v1:LogicalFormula, v2:LogicalFormula) extends LogicalFormula{
+  override def symbols: Set[VVar] = v1.symbols.union(v2.symbols)
+}
+case class LOr(v1:LogicalFormula, v2:LogicalFormula) extends LogicalFormula {
+  override def symbols: Set[VVar] = v1.symbols.union(v2.symbols)
+}
+case class LNot(v:LogicalFormula) extends LogicalFormula{
+  override def symbols: Set[VVar] = v.symbols
+}
+case class LEq(v1:ValueFormula, v2:ValueFormula) extends LogicalFormula{
+  override def symbols: Set[VVar] = v1.symbols.union(v2.symbols)
+}
+case class LLt(v1:ValueFormula, v2:ValueFormula) extends LogicalFormula{
+  override def symbols: Set[VVar] = v1.symbols.union(v2.symbols)
+}
+case object LTrue extends LogicalFormula{
+  override def symbols = Set()
+}
+case object LFalse extends LogicalFormula{
+  override def symbols = Set()
+}
 
-sealed trait ValueFormula
-case class VNumber(n:Int) extends ValueFormula
-case class VVar(name:String, prePost:PrePost) extends ValueFormula
+sealed trait ValueFormula{
+  def symbols:Set[VVar]
+}
+case class VNumber(n:Int) extends ValueFormula{
+  override def symbols = Set()
+}
+case class VVar(name:String, prePost:PrePost) extends ValueFormula{
+  override def symbols = Set()
+}
 trait AbstractDomain[T]{
   def formulaToAbstraction(formula:LogicalFormula, prePost: PrePost)(implicit ctx:TransferSolverContext):T
   def abstractionToFormula(abstraction:T, prePost:PrePost):LogicalFormula

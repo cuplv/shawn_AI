@@ -43,7 +43,8 @@ case object Z3SolverContext extends TransferSolverContext{
   override def simplify(formula: LogicalFormula): LogicalFormula = {
     solver.reset()
     solver.add(formulaToSmt(formula))
-    solver.check()
+    val res = solver.check()
+//    solver.getConsequences(formula.symbols.map{valueToSmt}.toArray)
     val model = solver.getModel
     ???
   }
