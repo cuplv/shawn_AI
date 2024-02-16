@@ -27,6 +27,8 @@ class SeparateAbsDomTest extends munit.FunSuite {
 
     val postState = transfer.transfer(preState, prog, l1, l2)
 
+    assertEquals(postState,BotIntervalState)
+
 
   }
 }

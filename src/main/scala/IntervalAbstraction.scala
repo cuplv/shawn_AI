@@ -90,7 +90,10 @@ case object IntervalStateAbstraction extends AbstractDomain[IntervalState]{
   override def formulaToAbstraction(formula: LogicalFormula, prePost: PrePost)
                                    (implicit ctx:TransferSolverContext): IntervalState =
     val simplified = ctx.simplify(formula)
-    ???
+    if(simplified == LFalse)
+      BotIntervalState
+    else
+      ???
 
   override def abstractionToFormula(abstraction: IntervalState, prePost: PrePost): LogicalFormula = abstraction match
     case SomeIntervalState(mem) => mem.map{ case (v,c) =>

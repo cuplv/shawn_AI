@@ -44,8 +44,12 @@ case object Z3SolverContext extends TransferSolverContext{
     solver.reset()
     solver.add(formulaToSmt(formula))
     val res = solver.check()
-//    solver.getConsequences(formula.symbols.map{valueToSmt}.toArray)
-    val model = solver.getModel
-    ???
+    if(res == Status.UNSATISFIABLE){
+      LFalse
+    }else {
+      //    solver.getConsequences(formula.symbols.map{valueToSmt}.toArray)
+      val model = solver.getModel
+      ???
+    }
   }
 }
