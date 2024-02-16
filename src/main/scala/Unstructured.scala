@@ -14,12 +14,20 @@ case class Unstructured(edges:Map[UnstructuredLoc, Set[(Step,UnstructuredLoc)]],
    *         Some(list) for when we can generate locations
    */
   override def transitionsFwd(loc: UnstructuredLoc): Option[Iterable[UnstructuredLoc]] = if(edges.contains(loc)){
-    Some(???)
+    Some(edges(loc).map{case (_,tgtLoc) => tgtLoc})
   } else None
 
   override def transitionsBkwd(loc: UnstructuredLoc): Option[Iterable[UnstructuredLoc]] = ???
 
   override def toStringWithInvar[IState](invar: Map[UnstructuredLoc, IState], printPrePost: Boolean): String = ???
+
+  override def getForwardPreAndPostFormula(pre: Loc, post: Loc): LogicalFormula = (pre,post) match{
+    case (pre:UnstructuredLoc, post:UnstructuredLoc) =>
+      val step: Option[(Step, UnstructuredLoc)] = edges(pre).find{case (step,progPost) => post == progPost}
+      step match
+        case Some((step,_)) => step.getForwardPreAndPostFormula
+        case None => LFalse
+  }
 }
 
 case class UnstructuredLoc(i:Int) extends Loc {
@@ -28,70 +36,6 @@ case class UnstructuredLoc(i:Int) extends Loc {
   }
 }
 
-case object Inf
-
-trait IntervalVal{
-  def truthEy:Boolean
-  def falseEy:Boolean
-  def join(other:IntervalVal):IntervalVal
-}
-/**
- * Represents a numeric value within a defined interval (inclusive if number exclusive if inf)
- * @param low lower bound of interval
- * @param high upper bound of interval
- */
-case class Interval(low:Int | Inf.type, high:Int | Inf.type) extends IntervalVal{
-  (low, high) match{
-    case (low:Int, high:Int) => assert(low <= high, s"Cannot construct contradictory interval low: $low  high: $high")
-    case _ =>
-  }
-  override def toString():String =
-    val first = low match{
-      case i:Int => s"[$i"
-      case Inf => s"(∞"
-    }
-    val last = high match{
-      case i:Int => s"$i]"
-      case Inf => s"∞)"
-    }
-    s"$first , $last"
-  def truthEy:Boolean = (low,high) match{
-    case (low:Int,high:Int) => low < 0 || high > 0
-    case (Inf,_) => true
-    case (_,Inf) => true
-  }
-  def falseEy:Boolean = (low,high) match{
-    case (low:Int, high:Int) => low <= 0 || high >=0
-    case (low:Int, Inf) => low <= 0
-    case (Inf, high:Int) => high >=0
-    case (Inf, Inf) => false
-  }
-
-  override def join(other: IntervalVal): IntervalVal = other match
-    case BotVal => this
-    case Interval(otherLow, otherHigh) => {
-      val newLow = (otherLow,low) match{
-        case (Inf, _) => Inf
-        case (_, Inf) => Inf
-        case (v1:Int, v2:Int) if v1 < v2 => v1
-        case (v1:Int, v2:Int) => v2
-      }
-      val newHigh = (otherHigh,high) match{
-        case (Inf, _) => Inf
-        case (_, Inf) => Inf
-        case (v1:Int, v2:Int) if v1 > v2 => v1
-        case (v1:Int, v2:Int) => v2
-      }
-      Interval(newLow,newHigh)
-    }
-
-}
-case object BotVal extends IntervalVal{
-  override def truthEy: Boolean = false // cannot eval to true if unreachable
-  override def falseEy: Boolean = false // cannot eval to true if unreachable
-
-  override def join(other: IntervalVal): IntervalVal = other
-}
 
 /**
  * Precise logical representation of state.
@@ -200,9 +144,18 @@ case class Lt(r1:RVal, r2:RVal) extends RVal
 case object Havoc extends RVal
 trait LVal extends RVal
 case class Var(name:String) extends LVal
-sealed trait Step //while commands decomposed into small steps
-case object Nop extends Step
+sealed trait Step{
+  def getForwardPreAndPostFormula:LogicalFormula
 
-case class Assume(cond:RVal) extends Step
+}
+case object Nop extends Step:
+  override def getForwardPreAndPostFormula: LogicalFormula = LTrue
 
-case class StepAssign(lhs:LVal, rhs:RVal) extends Step
+case class Assume(cond:RVal) extends Step:
+  override def getForwardPreAndPostFormula: LogicalFormula = cond match
+    case Var(name) => LAnd(LNot(LEq(VVar(name,Post), VNumber(0))), LEq(VVar(name,Pre), VVar(name,Post)))
+
+
+
+case class StepAssign(lhs:LVal, rhs:RVal) extends Step:
+  override def getForwardPreAndPostFormula: LogicalFormula = ???

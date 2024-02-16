@@ -1,3 +1,5 @@
+import sbt.Keys.{baseDirectory, unmanagedJars}
+
 val scala3Version = "3.3.1"
 
 lazy val root = project
@@ -8,5 +10,7 @@ lazy val root = project
 
     scalaVersion := scala3Version,
 
-    libraryDependencies += "org.scalameta" %% "munit" % "0.7.29" % Test
+    libraryDependencies += "org.scalameta" %% "munit" % "0.7.29" % Test,
+    libraryDependencies +="org.sosy-lab" % "java-smt" % "4.1.1",
+    Compile /  unmanagedJars += baseDirectory.value / "lib/com.microsoft.z3.jar"
   )

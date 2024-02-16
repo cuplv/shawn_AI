@@ -76,6 +76,8 @@ case class WhileSeq(c1:WhileCmd, c2:WhileCmd) extends WhileCmd {
       s"${invar.getOrElse(preLoc, BotIntervalState)} ${rest} ${invar.getOrElse(postLoc,BotIntervalState)}"
     } else rest
   }
+
+  override def getForwardPreAndPostFormula(pre: Loc, post: Loc): LogicalFormula = ???
 }
 
 object WhileSeq{
@@ -128,6 +130,8 @@ case class WhileAssign(lhs:LVal, rhs:RVal) extends WhileCmd{
       s"${invar(preLoc)} ${rest} ${invar(postLoc)}"
     } else rest
   }
+
+  override def getForwardPreAndPostFormula(pre: Loc, post: Loc): LogicalFormula = ???
 }
 
 object WhileAssign {
@@ -190,6 +194,8 @@ case class WhileWhile(cond:RVal, cmd:WhileCmd) extends WhileCmd {
       s"${invar(preLoc)} ${rest} ${invar(postLoc)}"
     } else rest
   }
+
+  override def getForwardPreAndPostFormula(pre: Loc, post: Loc): LogicalFormula = ???
 }
 
 object WhileWhile:

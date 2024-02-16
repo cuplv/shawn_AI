@@ -31,6 +31,7 @@ trait Interpretable[ILoc] {
   def transitionsBkwd(loc:ILoc):Option[Iterable[ILoc]]
 
   def toStringWithInvar[IState](invar:Map[ILoc,IState], printPrePost:Boolean = true):String
+  def getForwardPreAndPostFormula(pre:Loc, post:Loc):LogicalFormula
 }
 
 trait Transfer[IState, ILoc<:Loc, IInterpretable<:Interpretable[ILoc]]{
