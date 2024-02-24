@@ -111,7 +111,6 @@ case class Interpreter[IState,ILoc<:Loc,IInterpretable<:Interpretable[ILoc]](int
       // apply the transfer function
       val tgtState = transfer.transfer(srcState,interpretable,srcLoc,tgtLoc)
 
-      // source abstract state should be in the invariant map, if it isn't for some reason then bototm
       val currTgtState = in(tgtLoc).getOrElse(transfer.bottomValue)
       // the state to insert is either joined or widened based on whether we have incoming back edges
       //TODO: later it would be advantageous to make this policy configurable
