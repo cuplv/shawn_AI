@@ -12,6 +12,11 @@ object IntervalEvenOddCombination extends ConstrainWith[IntervalState, EvenOddSt
       BotVal
     } else {
       intervalVal match {
+        case i@Interval(low:Int, high:Int) if low == high => oddVal match
+          case TopEvenOddVal => i
+          case Even => if(low %2 == 0) i else BotVal
+          case Odd => if(low %2 == 1) i else BotVal
+          case BotEvenOddVal => BotVal
         case Interval(low: Int, high: Int) => Interval(roundDown(low, oddVal), roundDown(high, oddVal))
         case Interval(low: Int, Inf) => Interval(roundDown(low, oddVal), Inf)
         case Interval(Inf, high: Int) => Interval(Inf, roundDown(high, oddVal))

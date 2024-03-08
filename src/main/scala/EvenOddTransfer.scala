@@ -69,7 +69,8 @@ case object EvenOddTransfer extends Transfer[EvenOddState, WhileLoc, WhileCmd] {
 //        case Even => ???
 //        case Odd => ???
 //        case BotEvenOddVal => ???
-    case StepAssign(Var(varname), rhs) => state.putVar(varname, transferRVal(state,rhs))
+    case StepAssign(Var(varname), rhs) => 
+      state.putVar(varname, transferRVal(state,rhs))
 
   override def transfer(srcState: EvenOddState, interpretable: WhileCmd, preLoc: WhileLoc, postLoc: WhileLoc): EvenOddState = srcState match {
     case SomeEvenOddState(mem) =>

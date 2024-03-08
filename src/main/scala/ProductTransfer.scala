@@ -3,7 +3,7 @@ case class ProductState[State1,State2](s1:State1, s2:State2)
 trait ConstrainWith[State1,State2]{
   def constrain(toConstrain:State1, constrainWith:State2):State1
 }
-case class ProductTransfer[State1,State2](
+final case class ProductTransfer[State1,State2](
                                            transfer1:Transfer[State1, WhileLoc, WhileCmd],
                                            transfer2:Transfer[State2, WhileLoc, WhileCmd],
                                            constrainState1With2:ConstrainWith[State1,State2],
@@ -16,6 +16,8 @@ case class ProductTransfer[State1,State2](
   override def getInitState(): ProductState[State1, State2] =
     ProductState(transfer1.getInitState(), transfer2.getInitState())
 
+  //TODO: constrainwith -> reduction
+  // TODO: maybe we don't want to apply reduction at every transfer step
   override def transfer(srcState: ProductState[State1, State2],
                         interpretable: WhileCmd, preLoc: WhileLoc, postLoc: WhileLoc): ProductState[State1, State2] =
     srcState match{
