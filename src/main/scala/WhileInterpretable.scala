@@ -147,7 +147,7 @@ case class WhileWhile(cond:RVal, cmd:WhileCmd) extends WhileCmd {
     case (WhileWhile.WhileEPre(id1,_), WhileWhile.WhileEDone(id2,_)) if id1 == id2 && id1 == id => Assume(Not(cond))
     case (WhileWhile.WhileETrue(id1,_), WhilePre(locID, _)) if id1 == id => Nop
     case (WhileWhile.WhileEPostCmd(id1,_), WhileWhile.WhileEPre(id2,_)) if id1 == id2 && id == id1 =>
-      Assume(cond)
+      Nop
     case (WhileWhile.WhileEPostCmd(id1,_), WhileWhile.WhileEDone(id2,_)) if id1 == id2 && id == id1 =>
       Assume(Not(cond))
     case (WhileWhile.WhileEDone(id1,_), tgt) if id1 == id && tgt.locID != id => Nop

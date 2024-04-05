@@ -1,5 +1,7 @@
-import scala.collection.{SortedSet}
+import scala.util.Random
+import scala.collection.BitSet
 import scala.annotation.tailrec
+import scala.collection.{SortedSet}
 
 sealed trait Dir
 case object ForwardsDir extends Dir
@@ -27,7 +29,7 @@ trait Interpretable[ILoc] {
    *         Some(list) for when we can generate locations
    */
   def transitionsFwd(loc:ILoc):Option[Iterable[ILoc]]
-  
+
   def transitionsBkwd(loc:ILoc):Option[Iterable[ILoc]]
 
   def toStringWithInvar[IState](invar:Map[ILoc,IState], printPrePost:Boolean = true):String
@@ -41,7 +43,7 @@ trait Transfer[IState, ILoc<:Loc, IInterpretable<:Interpretable[ILoc]]{
   def getInitState():IState
 
   def transfer(srcState:IState, interpretable:IInterpretable, preLoc:ILoc, postLoc:ILoc):IState
-  
+
   def join(s1:IState, s2:IState):IState
 
   def widen(s1:IState, s2:IState):IState
