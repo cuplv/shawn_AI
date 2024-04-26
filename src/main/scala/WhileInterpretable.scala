@@ -34,10 +34,7 @@ trait WhileCmd extends Interpretable[WhileLoc]{
 }
 
 
-sealed trait Step //while commands decomposed into small steps
-case object Nop extends Step
 
-case class Assume(cond:WhileRVal) extends Step
 
 case class WhileSeq(c1:WhileCmd, c2:WhileCmd) extends WhileCmd {
 
@@ -79,6 +76,8 @@ case class WhileSeq(c1:WhileCmd, c2:WhileCmd) extends WhileCmd {
       s"${invar.getOrElse(preLoc, BotIntervalState)} ${rest} ${invar.getOrElse(postLoc,BotIntervalState)}"
     } else rest
   }
+
+  override def getForwardPreAndPostFormula(pre: Loc, post: Loc): LogicalFormula = ???
 }
 
 object WhileSeq{
@@ -86,11 +85,23 @@ object WhileSeq{
   case class PreC1(locID:LocID, cmd:WhileCmd) extends SeqLoc
   case class PostC1(locID:LocID, cmd:WhileCmd) extends SeqLoc
   case class PostC2(locID:LocID, cmd:WhileCmd) extends SeqLoc
+
+  /**
+   * Allows calling whileseq with an arbitrary number of commands.
+   * explicit c1 and c2 args distinguish this from the automatic case class constructor
+   * @param c1 first command
+   * @param c2 second command
+   * @param c variable rest of commands
+   * @return c1;c2; ... ; cn
+   */
+  def apply(c1:WhileCmd, c2:WhileCmd, c:WhileCmd*):WhileSeq =
+    val rest = c.reduceOption {case (c1,c2) => WhileSeq(c1,c2)}.get
+    WhileSeq(c1, WhileSeq(c2, rest))
 }
 
 
 
-case class WhileAssign(lhs:WhileLVal, rhs:WhileRVal) extends WhileCmd with Step{
+case class WhileAssign(lhs:LVal, rhs:RVal) extends WhileCmd{
   val uuid = java.util.UUID.randomUUID
   override def id: UUID = uuid
   def findLoc(loc:WhileLoc):Option[WhileCmd] = if(id == loc.locID) Some(this) else None
@@ -107,7 +118,7 @@ case class WhileAssign(lhs:WhileLVal, rhs:WhileRVal) extends WhileCmd with Step{
 
   override def hasIncomingBackEdges(loc: WhileLoc): Boolean = false
 
-  override def getStep(pre: WhileLoc, post: WhileLoc): Step = this
+  override def getStep(pre: WhileLoc, post: WhileLoc): Step = StepAssign(lhs,rhs)
 
   override def preLoc: WhileLoc = WhilePre(id, this)
 
@@ -119,13 +130,15 @@ case class WhileAssign(lhs:WhileLVal, rhs:WhileRVal) extends WhileCmd with Step{
       s"${invar(preLoc)} ${rest} ${invar(postLoc)}"
     } else rest
   }
+
+  override def getForwardPreAndPostFormula(pre: Loc, post: Loc): LogicalFormula = ???
 }
 
 object WhileAssign {
-  def apply(name:String,rval:WhileRVal):WhileAssign = WhileAssign(Var(name),rval)
+  def apply(name:String,rval:RVal):WhileAssign = WhileAssign(Var(name),rval)
 
 }
-case class WhileWhile(cond:WhileRVal, cmd:WhileCmd) extends WhileCmd {
+case class WhileWhile(cond:RVal, cmd:WhileCmd) extends WhileCmd {
 
   val uuid = java.util.UUID.randomUUID
 
@@ -134,7 +147,7 @@ case class WhileWhile(cond:WhileRVal, cmd:WhileCmd) extends WhileCmd {
     case (WhileWhile.WhileEPre(id1,_), WhileWhile.WhileEDone(id2,_)) if id1 == id2 && id1 == id => Assume(Not(cond))
     case (WhileWhile.WhileETrue(id1,_), WhilePre(locID, _)) if id1 == id => Nop
     case (WhileWhile.WhileEPostCmd(id1,_), WhileWhile.WhileEPre(id2,_)) if id1 == id2 && id == id1 =>
-      Assume(cond)
+      Nop
     case (WhileWhile.WhileEPostCmd(id1,_), WhileWhile.WhileEDone(id2,_)) if id1 == id2 && id == id1 =>
       Assume(Not(cond))
     case (WhileWhile.WhileEDone(id1,_), tgt) if id1 == id && tgt.locID != id => Nop
@@ -181,6 +194,8 @@ case class WhileWhile(cond:WhileRVal, cmd:WhileCmd) extends WhileCmd {
       s"${invar(preLoc)} ${rest} ${invar(postLoc)}"
     } else rest
   }
+
+  override def getForwardPreAndPostFormula(pre: Loc, post: Loc): LogicalFormula = ???
 }
 
 object WhileWhile:
@@ -192,11 +207,6 @@ object WhileWhile:
 
 end WhileWhile
 
-trait WhileRVal
-case class Num(n:Integer) extends WhileRVal
-case class Not(whileRVal: WhileRVal) extends WhileRVal
-trait WhileLVal extends WhileRVal
-case class Var(name:String) extends WhileLVal
 
 sealed trait PrePost
 case object Pre extends PrePost
@@ -204,91 +214,17 @@ case object Post extends PrePost
 
 
 
-case object Inf
-
-trait IntervalVal{
-  def truthEy:Boolean
-  def falseEy:Boolean
-  def join(other:IntervalVal):IntervalVal
-}
-/**
- * Represents a numeric value within a defined interval (inclusive if number exclusive if inf)
- * @param low lower bound of interval
- * @param high upper bound of interval
- */
-case class Interval(low:Int | Inf.type, high:Int | Inf.type) extends IntervalVal{
-  override def toString():String =
-    val first = low match{
-      case i:Int => s"[$i"
-      case Inf => s"(∞"
-    }
-    val last = high match{
-      case i:Int => s"$i]"
-      case Inf => s"∞)"
-    }
-    s"$first , $last"
-  def truthEy:Boolean = (low,high) match{
-    case (low:Int,high:Int) => low < 0 || high > 0
-    case (Inf,_) => true
-    case (_,Inf) => true
-  }
-  def falseEy:Boolean = (low,high) match{
-    case (low:Int, high:Int) => low <= 0 || high >=0
-    case (low:Int, Inf) => low <= 0
-    case (Inf, high:Int) => high >=0
-    case (Inf, Inf) => false
-  }
-
-  override def join(other: IntervalVal): IntervalVal = other match
-    case BotVal => this
-    case Interval(otherLow, otherHigh) => {
-      val newLow = (otherLow,low) match{
-        case (Inf, _) => Inf
-        case (_, Inf) => Inf
-        case (v1:Int, v2:Int) if v1 < v2 => v1
-        case (v1:Int, v2:Int) => v2
-      }
-      val newHigh = (otherHigh,high) match{
-        case (Inf, _) => Inf
-        case (_, Inf) => Inf
-        case (v1:Int, v2:Int) if v1 > v2 => v1
-        case (v1:Int, v2:Int) => v2
-      }
-      Interval(newLow,newHigh)
-    }
-
-}
-case object BotVal extends IntervalVal{
-  override def truthEy: Boolean = false // cannot eval to true if unreachable
-  override def falseEy: Boolean = false // cannot eval to true if unreachable
-
-  override def join(other: IntervalVal): IntervalVal = other
-}
-
-
-sealed trait IntervalState{
-  def getVar(name:String):IntervalVal
-  def putVar(name:String, interval:IntervalVal):IntervalState
-}
-case class SomeIntervalState(mem: Map[String,IntervalVal]) extends IntervalState{
-  override def toString() = s"{${mem.toList.map{a => s"${a._1} -> ${a._2}"}.mkString(",")}}"
-  override def putVar(name: String, interval: IntervalVal): IntervalState = {
-    this.copy(mem = mem + (name -> interval))
-  }
-
-  override def getVar(name: String): IntervalVal = mem.getOrElse(name,BotVal)
-}
-case object BotIntervalState extends IntervalState{
-  override def toString() = "\u22A5"
-  override def putVar(name: String, interval: IntervalVal): IntervalState = BotIntervalState
-
-  override def getVar(name: String): IntervalVal = BotVal
-}
 
 
 
 
-case object IntervalTransfer extends Transfer[IntervalState, WhileLoc,WhileCmd]{
+//TODO: see if there is a partial order trait that this can implement
+
+
+
+
+
+case object WhileIntervalTransfer extends Transfer[IntervalState, WhileLoc,WhileCmd]{
 
   override def getDirection: Dir = ForwardsDir
 
@@ -301,7 +237,20 @@ case object IntervalTransfer extends Transfer[IntervalState, WhileLoc,WhileCmd]{
       transferStep(srcState,step)
     }.getOrElse(throw new IllegalStateException(s"location $srcLoc not found"))
   }
-  def transferRVal(srcState:IntervalState, rval:WhileRVal) :IntervalVal = rval match
+  def lt(v1:Int | Inf.type , v2:Int | Inf.type):Boolean = {
+    ???
+  }
+
+  def evalLt(i1:IntervalVal, i2:IntervalVal):IntervalVal = (i1, i2) match{
+    case (BotVal, _) => BotVal
+    case (_,BotVal) => BotVal
+    case (i1:Interval, i2:Interval) if lt(i1.high,i2.low) => Interval(1,1)
+    case (i1:Interval, i2:Interval) if i1 == i2 => Interval(0,0)
+    case v =>
+      println(v)
+      ???
+  }
+  def transferRVal(srcState:IntervalState, rval:RVal) :IntervalVal = rval match
     case Num(n) => Interval(n,n)
     case Var(n) => srcState.getVar(n)
     case Not(v) =>
@@ -314,13 +263,18 @@ case object IntervalTransfer extends Transfer[IntervalState, WhileLoc,WhileCmd]{
         Interval(0, 0)
       } else
         BotVal
+    case Havoc => Interval(Inf, Inf)
+    case Lt(r1, r2) =>
+      val r1interval = transferRVal(srcState, r1)
+      val r2interval = transferRVal(srcState, r2)
+      evalLt(r1interval, r2interval)
     case a => println(a); ???
 
   def transferStep(srcState:IntervalState, step:Step):IntervalState = step match
     case Nop => srcState
-    case WhileAssign(Var(varname), rval) =>
+    case StepAssign(Var(varname), rval) =>
       srcState.putVar(varname,transferRVal(srcState,rval))
-    case WhileAssign(a,b) =>
+    case StepAssign(a,b) =>
       println(s"unimplemented $a = $b") ; ???
     case Assume(cond) =>
       val condEval = transferRVal(srcState,cond)

@@ -1,7 +1,6 @@
 ## Shawn's Abstract Interpreter
 
 This is a repository for testing out ideas for building abstract interpreters.
-
 Currently, we have an interval domain implemented with a simple while language.
 Unit tests may be found in `src/test/WhileTest.scala` and run with `sbt test`.
 Unit tests can be a great way to understand the whole project so I suggest starting there.
@@ -107,6 +106,8 @@ In order to test out the project, we recommend using the docker scripts:
  
 Other useful sbt commands:
 You can compile code with `sbt compile`, run it with `sbt run`, test with `sbt test`, and `sbt console` will start a Scala 3 REPL.
+
+This is a normal sbt project. You can compile code with `sbt compile`, run it with `sbt run`, test with `sbt test`, and `sbt console` will start a Scala 3 REPL.
 
 For more information on the sbt-dotty plugin, see the
 [scala3-example-project](https://github.com/scala/scala3-example-project/blob/main/README.md).
