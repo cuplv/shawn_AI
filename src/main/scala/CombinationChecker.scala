@@ -1,6 +1,14 @@
 /**
  *  The goal of this is to do a "pre-analysis" check to see if the transfer functions are fully defined over a given program.
- *  Given a program, initial states, and a set of transfers, checkAllValid should only return true if interpret cannot get stuck due to a missing transfer function.
+ *  Given a program, initial states, and a set of transfers, checkAllValid should only return true if interpret cannot
+ *  get stuck due to a missing transfer function.
+ *
+ *  For example,
+ *  a numeric domain may have commands like `x = x - 1`  and states like `x -> 5` at each location
+ *  and a blocking domain may have commands like `assume x > 1` and states like `blocked` or `not blocked` at a location
+ *
+ *  for a program like `while x > 1 do x = x-1` the blocking domain applies after the condition and numeric in other places.
+ *  // TODO: still thinking through this
  */
 case class CombinationChecker(program:Program, initialStates:Set[(StateC, Location)], transfers:Set[TransferHandler]) {
   // ensure that no state transition pair may get stuck with no transfer
